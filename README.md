@@ -1,1 +1,1 @@
-# -cu-i-k-qu-n-tr-h-c-c-Quy-n-p-g-i
+quản trị học bài cuối kì của cô Quyên
