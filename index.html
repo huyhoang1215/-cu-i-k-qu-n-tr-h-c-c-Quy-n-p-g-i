@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phân tích Tình huống: Chiến lược "Người Xanh" của Điện máy Xanh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: "Calm Harmony" (Nền trung tính sáng, Xanh dương làm chủ đạo, Vàng làm điểm nhấn) -->
+    <!-- Application Structure Plan: SPA được cấu trúc theo 4 phần-tab (Tổng quan, Chiến lược, Kết quả, Phân tích) với thanh điều hướng dính. Cách tiếp cận theo chủ đề này cho phép người dùng khám phá tình huống phi tuyến tính. Phần "Kết quả" là trọng tâm tương tác, có bộ lọc (theo năm) tự động cập nhật cả biểu đồ và tóm tắt văn bản. Cấu trúc này được chọn vì nó ưu tiên khám phá tác động của chiến dịch (phần cốt lõi của phân tích) và tăng cường sự hiểu biết thông qua tương tác trực tiếp với dữ liệu. -->
+    <!-- Visualization & Content Choices: 
+        1. Bối cảnh Thị trường: (Mục tiêu: So sánh) -> Biểu đồ Cột (Chart.js) hiển thị thị phần trước chiến dịch. Tương tác: Hover. Lý do: So sánh rõ ràng vị thế ban đầu.
+        2. Mô hình AIDA: (Mục tiêu: Tổ chức) -> Sơ đồ HTML/CSS (Tailwind Flexbox). Tương tác: Tĩnh. Lý do: Trình bày khung lý thuyết chuẩn, không cần SVG.
+        3. Tăng trưởng Nhận diện Thương hiệu: (Mục tiêu: Thay đổi) -> Biểu đồ Đường (Chart.js). Tương tác: Tĩnh (hiển thị toàn bộ xu hướng). Lý do: Hiển thị rõ ràng sự tăng trưởng theo thời gian.
+        4. Thị phần (Sau): (Mục tiêu: So sánh/Thông báo) -> Biểu đồ Donut (Chart.js). Tương tác: Cập nhật theo bộ lọc 'Năm'. Lý do: Hiển thị sự thống trị của ĐMX sau chiến dịch.
+        5. Thảo luận Xã hội: (Mục tiêu: Thông báo) -> Biểu đồ Cột (Chart.js). Tương tác: Cập nhật theo bộ lọc 'Năm'. Lý do: Lượng hóa yếu tố "viral".
+        6. Phân tích SWOT: (Mục tiêu: Tổ chức) -> Lưới HTML/CSS. Tương tác: Nhấn để xem chi tiết. Lý do: Trình bày thông tin phân loại một cách tương tác, tránh lộn xộn.
+        7. Văn bản Động (Doanh thu, v.v.): (Mục tiêu: Thông báo/Quan hệ) -> Khối văn bản HTML. Tương tác: Cập nhật dựa trên bộ lọc 'Năm'. Lý do: Liên kết hành động lọc với nhiều điểm dữ liệu, tạo cảm giác dashboard tích hợp. (Phương pháp: JS .textContent).
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .nav-link.active {
+            color: #2563eb; 
+            border-bottom-width: 2px;
+            border-color: #2563eb;
+        }
+        .swot-card {
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .swot-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .strategy-card {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        .strategy-card.active, .strategy-card:hover {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0 flex items-center">
+                    <h1 class="text-xl md:text-2xl font-bold text-blue-700">Phân tích: ĐMX "Người Xanh"</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a data-target="overview-section" class="nav-link active text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Tổng quan</a>
+                        <a data-target="strategy-section" class="nav-link text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Chiến lược</a>
+                        <a data-target="results-section" class="nav-link text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Kết quả</a>
+                        <a data-target="analysis-section" class="nav-link text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Phân tích</a>
+                    </div>
+                </div>
+                <div class="md:hidden flex items-center">
+                    <select id="mobile-nav" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        <option value="overview-section">Tổng quan</option>
+                        <option value="strategy-section">Chiến lược</option>
+                        <option value="results-section">Kết quả</option>
+                        <option value="analysis-section">Phân tích</option>
+                    </select>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="overview-section" class="py-12 md:py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-center text-gray-900">Tổng quan Tình huống</h2>
+                <p class="mt-4 text-lg text-gray-700 text-center max-w-3xl mx-auto">
+                    Chiến dịch "Người Xanh" của Điện máy Xanh (ĐMX), ra mắt vào khoảng năm 2016, là một trong những chiến dịch quảng cáo gây tiếng vang và tranh cãi nhất tại Việt Nam. Phần này khám phá bối cảnh thị trường và những thách thức mà ĐMX phải đối mặt trước khi tung ra chiến dịch đột phá này.
+                </p>
+
+                <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-xl font-semibold mb-3 text-blue-700">Thách thức Thị trường</h3>
+                        <p class="text-gray-700 mb-2">
+                            Vào năm 2015, thị trường bán lẻ điện máy vô cùng cạnh tranh với nhiều "ông lớn" lâu đời như Nguyễn Kim, FPT Shop, Viễn Thông A, và Chợ Lớn.
+                        </p>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                            <li><strong>Mức độ nhận diện:</strong> ĐMX, dù là "anh em" với Thế Giới Di Động, vẫn còn là một cái tên tương đối mới và chưa có độ nhận diện cao bằng các đối thủ.</li>
+                            <li><strong>Sự tương đồng:</strong> Các nhà bán lẻ chủ yếu cạnh tranh về giá và khuyến mãi, thiếu đi một bản sắc thương hiệu (brand personality) rõ rệt.</li>
+                            <li><strong>Mục tiêu:</strong> ĐMX cần một cú hích lớn để bứt phá, tăng tốc độ mở rộng chuỗi và chiếm lĩnh vị trí số 1 thị trường.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-center">Bối cảnh Thị phần (Ước tính 2015)</h3>
+                        <div class="chart-container" style="max-height: 300px;">
+                            <canvas id="marketContextChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="strategy-section" class="py-12 md:py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-center text-gray-900">Chiến lược "Người Xanh"</h2>
+                <p class="mt-4 text-lg text-gray-700 text-center max-w-3xl mx-auto">
+                    Để giải quyết thách thức, ĐMX không chọn cách cạnh tranh trực diện về giá. Thay vào đó, họ chọn một chiến lược "Big Idea" (Ý tưởng lớn) đầy rủi ro: tạo ra một hình ảnh thương hiệu không thể bị lãng quên.
+                </p>
+
+                <div class="mt-12">
+                    <h3 class="text-2xl font-semibold text-center mb-6">Giải mã Ý tưởng Lớn</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div id="strategy-card-1" class="strategy-card bg-gray-50 rounded-lg shadow-md p-6 text-center border-2 border-blue-600 active">
+                            <span class="text-5xl">⚠️</span>
+                            <h4 class="text-xl font-semibold mt-4 mb-2">Gây chú ý (Disruption)</h4>
+                        </div>
+                        <div id="strategy-card-2" class="strategy-card bg-gray-50 rounded-lg shadow-md p-6 text-center">
+                            <span class="text-5xl">🔁</span>
+                            <h4 class="text-xl font-semibold mt-4 mb-2">Lặp lại & Ám ảnh (Repetition)</h4>
+                        </div>
+                        <div id="strategy-card-3" class="strategy-card bg-gray-50 rounded-lg shadow-md p-6 text-center">
+                            <span class="text-5xl">💡</span>
+                            <h4 class="text-xl font-semibold mt-4 mb-2">Liên kết Thương hiệu (Brand Link)</h4>
+                        </div>
+                    </div>
+                    <div class="mt-6 bg-blue-50 rounded-lg p-6 min-h-[150px]">
+                        <p id="strategy-card-text" class="text-lg text-gray-800">
+                            Chiến dịch sử dụng hình ảnh "Người Xanh" kỳ dị, nhảy múa một cách khó hiểu trên nền nhạc lặp đi lặp lại. Mục tiêu là phá vỡ sự nhàm chán của quảng cáo truyền thống, buộc người xem phải chú ý, dù là tích cực hay tiêu cực.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-16">
+                    <h3 class="text-2xl font-semibold text-center mb-6">Áp dụng Mô hình AIDA</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <h4 class="text-xl font-bold text-red-600 mb-2">A - Attention (Chú ý)</h4>
+                            <p class="text-gray-700">Các TVC "ám ảnh" với tần suất dày đặc trên TV và YouTube, không thể không thấy.</p>
+                        </div>
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <h4 class="text-xl font-bold text-orange-500 mb-2">I - Interest (Thích thú)</h4>
+                            <p class="text-gray-700">Sự kỳ dị tạo ra tranh cãi, tò mò. Hàng loạt ảnh chế, video parody ra đời, tạo nên hiệu ứng viral.</p>
+                        </div>
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <h4 class="text-xl font-bold text-yellow-500 mb-2">D - Desire (Mong muốn)</h4>
+                            <p class="text-gray-700">Khi đã quen thuộc, "Người Xanh" trở thành biểu tượng. Thông điệp "Bạn muốn Tivi, Tủ lạnh... đến Điện máy Xanh" được củng cố.</p>
+                        </div>
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <h4 class="text-xl font-bold text-green-600 mb-2">A - Action (Hành động)</h4>
+                            <p class="text-gray-700">Tăng vọt về truy cập website và doanh số cửa hàng. Thương hiệu trở thành "Top-of-mind" (lựa chọn hàng đầu).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="results-section" class="py-12 md:py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-center text-gray-900">Thực thi & Kết quả Vượt trội</h2>
+                <p class="mt-4 text-lg text-gray-700 text-center max-w-3xl mx-auto">
+                    Chiến dịch được triển khai đồng loạt trên các kênh truyền thông đại chúng, từ TV, YouTube đến OOH và tại điểm bán. Kết quả là một sự thay đổi địa chấn trên thị trường. Khám phá dữ liệu (giả lập) qua các năm để thấy rõ tác động.
+                </p>
+
+                <div class="mt-10 max-w-md mx-auto bg-white rounded-lg shadow-lg p-4 flex items-center justify-center space-x-4">
+                    <label for="yearFilter" class="text-lg font-semibold text-gray-800">Chọn năm để xem kết quả:</label>
+                    <select id="yearFilter" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg font-bold">
+                        <option value="2016" selected>2016</option>
+                        <option value="2017">2017</option>
+                        <option value="2018">2018</option>
+                    </select>
+                </div>
+
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
+                    <div class="bg-blue-600 text-white rounded-lg shadow-lg p-6">
+                        <h4 class="text-xl font-semibold">Doanh thu (Ước tính)</h4>
+                        <p id="dynamicRevenue" class="text-4xl font-bold mt-2">12,000 tỷ VND</p>
+                    </div>
+                    <div class="bg-yellow-400 text-gray-900 rounded-lg shadow-lg p-6">
+                        <h4 class="text-xl font-semibold">Số lượng cửa hàng</h4>
+                        <p id="dynamicStores" class="text-4xl font-bold mt-2">250</p>
+                    </div>
+                </div>
+
+                <div class="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-center">Tăng trưởng Nhận diện Thương hiệu</h3>
+                        <div class="chart-container" style="max-height: 300px;">
+                            <canvas id="awarenessChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-center">Thị phần (Donut) - Năm <span id="marketShareYear">2016</span></h3>
+                        <div class="chart-container" style="max-height: 300px;">
+                            <canvas id="marketShareChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                 <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-center">Thảo luận Mạng Xã hội - Năm <span id="socialBuzzYear">2016</span></h3>
+                        <div class="chart-container" style="max-width: 800px; max-height: 300px;">
+                            <canvas id="socialBuzzChart"></canvas>
+                        </div>
+                    </div>
+            </div>
+        </section>
+
+        <section id="analysis-section" class="py-12 md:py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-center text-gray-900">Phân tích & Bài học</h2>
+                <p class="mt-4 text-lg text-gray-700 text-center max-w-3xl mx-auto">
+                    Thành công của chiến dịch không phải là may mắn. Đó là kết quả của sự liều lĩnh có tính toán, sự thấu hiểu thị trường và khả năng thực thi xuất sắc. Phần này tổng kết các yếu tố then chốt và bài học quản trị rút ra.
+                </p>
+
+                <div class="mt-12">
+                    <h3 class="text-2xl font-semibold text-center mb-6">Phân tích SWOT (Nhấn để xem)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="swot-card rounded-lg shadow-md overflow-hidden" data-target="swot-s">
+                            <div class="bg-green-100 p-4">
+                                <h4 class="text-xl font-bold text-green-800">Strengths (Điểm mạnh)</h4>
+                            </div>
+                            <div id="swot-s" class="p-6 text-gray-700 hidden">
+                                <ul class="list-disc list-inside space-y-2">
+                                    <li><strong>Táo bạo & Khác biệt:</strong> Dám đi ngược lại với tiêu chuẩn quảng cáo thông thường.</li>
+                                    <li><strong>Nguồn lực mạnh:</strong> Được hậu thuẫn bởi Thế Giới Di Động (MWG) với tiềm lực tài chính và kinh nghiệm triển khai.</li>
+                                    <li><strong>Tính nhất quán:</strong> Hình ảnh "Người Xanh" xuất hiện đồng bộ trên mọi kênh, từ online đến offline.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="swot-card rounded-lg shadow-md overflow-hidden" data-target="swot-w">
+                            <div class="bg-red-100 p-4">
+                                <h4 class="text-xl font-bold text-red-800">Weaknesses (Điểm yếu)</h4>
+                            </div>
+                            <div id="swot-w" class="p-6 text-gray-700 hidden">
+                                <ul class="list-disc list-inside space-y-2">
+                                    <li><strong>Rủi ro phản cảm:</strong> Gây khó chịu và bị ghét bỏ dữ dội trong giai đoạn đầu.</li>
+                                    <li><strong>Nguy cơ loãng thông điệp:</strong> Sự kỳ dị có thể làm lu mờ thông điệp bán hàng (sản phẩm).</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="swot-card rounded-lg shadow-md overflow-hidden" data-target="swot-o">
+                            <div class="bg-blue-100 p-4">
+                                <h4 class="text-xl font-bold text-blue-800">Opportunities (Cơ hội)</h4>
+                            </div>
+                            <div id="swot-o" class="p-6 text-gray-700 hidden">
+                                <ul class="list-disc list-inside space-y-2">
+                                    <li><strong>Thị trường bão hòa:</strong> Người tiêu dùng "miễn nhiễm" với quảng cáo truyền thống.</li>
+                                    <li><strong>Sức mạnh của MXH:</strong> Khả năng tạo viral và meme-hóa cao, giúp lan truyền miễn phí.</li>
+                                    <li><strong>Tăng trưởng nhanh:</strong> Cơ hội chiếm lĩnh thị phần nhanh chóng nếu thành công.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="swot-card rounded-lg shadow-md overflow-hidden" data-target="swot-t">
+                            <div class="bg-yellow-100 p-4">
+                                <h4 class="text-xl font-bold text-yellow-800">Threats (Thách thức)</h4>
+                            </div>
+                            <div id="swot-t" class="p-6 text-gray-700 hidden">
+                                <ul class="list-disc list-inside space-y-2">
+                                    <li><strong>Phản ứng tiêu cực:</strong> Làn sóng tẩy chay từ cộng đồng có thể giết chết thương hiệu.</li>
+                                    <li><strong>Đối thủ sao chép:</strong> Nếu thành công, các đối thủ có thể học theo mô-típ "kỳ dị".</li>
+                                    <li><strong>Chi phí khổng lồ:</strong> Việc "dội bom" quảng cáo đòi hỏi ngân sách cực lớn.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-16">
+                    <h3 class="text-2xl font-semibold text-center mb-6">Bài học Quản trị Rút ra</h3>
+                    <div class="max-w-3xl mx-auto bg-gray-50 rounded-lg shadow-lg p-8">
+                        <ul class="list-disc list-inside space-y-4 text-lg text-gray-800">
+                            <li><strong>Thà bị ghét còn hơn bị lờ đi:</strong> Trong một thị trường đông đúc, sự an toàn đồng nghĩa với cái chết. Sự khác biệt, dù gây tranh cãi, sẽ tạo ra nhận diện.</li>
+                            <li><strong>Hiểu rõ khách hàng mục tiêu (Mass):</strong> ĐMX hiểu rằng tệp khách hàng đại chúng dễ bị tác động bởi quảng cáo lặp đi lặp lại, đơn giản và vui vẻ (dù ban đầu kỳ dị).</li>
+                            <li><strong>Kiên định là chìa khóa:</strong> ĐMX đã không nao núng trước làn sóng tiêu cực ban đầu mà tiếp tục chiến dịch, tin tưởng vào "Big Idea" của mình.</li>
+                            <li><strong>Tận dụng "Earned Media":</strong> Chiến dịch được thiết kế để tạo ra tranh cãi, từ đó kích hoạt cộng đồng tự sản xuất nội dung (meme, parody), giúp lan truyền với chi phí 0 đồng.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-400">Giao diện phân tích tình huống quản trị (Demo). 2025.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const dataStore = {
+                '2015': {
+                    marketShare: [10, 30, 20, 15, 25],
+                    awareness: 25,
+                },
+                '2016': {
+                    revenue: '12,000 tỷ VND',
+                    stores: 250,
+                    awareness: 65,
+                    marketShare: [22, 25, 18, 10, 25],
+                    socialMentions: 150000,
+                    socialSentiment: [30, 70] 
+                },
+                '2017': {
+                    revenue: '25,000 tỷ VND',
+                    stores: 500,
+                    awareness: 85,
+                    marketShare: [32, 20, 15, 8, 25],
+                    socialMentions: 300000,
+                    socialSentiment: [60, 40]
+                },
+                '2018': {
+                    revenue: '40,000 tỷ VND',
+                    stores: 750,
+                    awareness: 95,
+                    marketShare: [40, 18, 12, 5, 25],
+                    socialMentions: 200000,
+                    socialSentiment: [80, 20]
+                }
+            };
+            
+            const chartLabels = {
+                marketShare: ['Điện máy Xanh', 'Nguyễn Kim', 'FPT Shop', 'Viễn Thông A', 'Khác'],
+                awareness: ['2015 (Trước CĐ)', '2016', '2017', '2018'],
+                socialSentiment: ['Tích cực (%)', 'Tiêu cực (%)']
+            };
+            
+            const strategyText = {
+                'strategy-card-1': 'Chiến dịch sử dụng hình ảnh "Người Xanh" kỳ dị, nhảy múa một cách khó hiểu trên nền nhạc lặp đi lặp lại. Mục tiêu là phá vỡ sự nhàm chán của quảng cáo truyền thống, buộc người xem phải chú ý, dù là tích cực hay tiêu cực.',
+                'strategy-card-2': 'TVC được phát sóng với tần suất cực cao ("dội bom") trên các kênh truyền hình giờ vàng và YouTube. Giai điệu "Bạn muốn mua Tivi... đến Điện máy Xanh" lặp lại đến mức "ám ảnh", khắc sâu vào tâm trí người xem.',
+                'strategy-card-3': 'Màu xanh đặc trưng của cơ thể nhân vật liên kết trực tiếp với tên thương hiệu "Điện máy Xanh". Dần dần, hình ảnh này trở thành linh vật, xuất hiện trên xe tải giao hàng, tại cửa hàng, tạo ra một hệ thống nhận diện nhất quán.'
+            };
+
+            let marketContextChartInstance, awarenessChartInstance, marketShareChartInstance, socialBuzzChartInstance;
+
+            function initCharts() {
+                const ctxContext = document.getElementById('marketContextChart').getContext('2d');
+                marketContextChartInstance = new Chart(ctxContext, {
+                    type: 'bar',
+                    data: {
+                        labels: chartLabels.marketShare,
+                        datasets: [{
+                            label: 'Thị phần 2015',
+                            data: dataStore['2015'].marketShare,
+                            backgroundColor: ['#2563eb', '#9ca3af', '#9ca3af', '#9ca3af', '#9ca3af'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, title: { display: true, text: 'Thị phần (%)' } } }
+                    }
+                });
+
+                const ctxAwareness = document.getElementById('awarenessChart').getContext('2d');
+                awarenessChartInstance = new Chart(ctxAwareness, {
+                    type: 'line',
+                    data: {
+                        labels: chartLabels.awareness,
+                        datasets: [{
+                            label: 'Nhận diện Thương hiệu',
+                            data: [dataStore['2015'].awareness, dataStore['2016'].awareness, dataStore['2017'].awareness, dataStore['2018'].awareness],
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: 'Nhận diện (%)' } } }
+                    }
+                });
+
+                const ctxMarketShare = document.getElementById('marketShareChart').getContext('2d');
+                marketShareChartInstance = new Chart(ctxMarketShare, {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartLabels.marketShare,
+                        datasets: [{
+                            label: 'Thị phần',
+                            data: dataStore['2016'].marketShare,
+                            backgroundColor: ['#2563eb', '#6b7280', '#9ca3af', '#d1d5db', '#e5e7eb'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.raw}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                const ctxSocialBuzz = document.getElementById('socialBuzzChart').getContext('2d');
+                socialBuzzChartInstance = new Chart(ctxSocialBuzz, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Tổng lượt thảo luận', 'Tỷ lệ Tích cực', 'Tỷ lệ Tiêu cực'],
+                        datasets: [{
+                            label: 'Thảo luận MXH',
+                            data: [
+                                dataStore['2016'].socialMentions, 
+                                dataStore['2016'].socialSentiment[0], 
+                                dataStore['2016'].socialSentiment[1]
+                            ],
+                            backgroundColor: ['#3b82f6', '#10b981', '#ef4444'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { 
+                                type: 'logarithmic',
+                                title: { display: true, text: 'Giá trị (Trục Log)' }
+                            },
+                            y: { grid: { display: false } }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        if (context.dataIndex === 0) {
+                                            return `Lượt thảo luận: ${context.raw.toLocaleString('vi-VN')}`;
+                                        }
+                                        return `Tỷ lệ: ${context.raw}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateDynamicText(year) {
+                const data = dataStore[year];
+                document.getElementById('dynamicRevenue').textContent = data.revenue;
+                document.getElementById('dynamicStores').textContent = data.stores;
+                document.getElementById('marketShareYear').textContent = year;
+                document.getElementById('socialBuzzYear').textContent = year;
+            }
+
+            function updateCharts(year) {
+                const data = dataStore[year];
+                
+                marketShareChartInstance.data.datasets[0].data = data.marketShare;
+                marketShareChartInstance.update();
+                
+                socialBuzzChartInstance.data.datasets[0].data = [
+                    data.socialMentions, 
+                    data.socialSentiment[0], 
+                    data.socialSentiment[1]
+                ];
+                socialBuzzChartInstance.update();
+            }
+
+            function handleFilterChange(event) {
+                const selectedYear = event.target.value;
+                updateDynamicText(selectedYear);
+                updateCharts(selectedYear);
+            }
+            
+            function handleNavClick(event) {
+                const target = event.currentTarget;
+                const targetId = target.dataset.target;
+                
+                document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+                target.classList.add('active');
+                
+                document.getElementById(targetId).scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+            
+            function handleMobileNavChange(event) {
+                 const targetId = event.target.value;
+                 document.getElementById(targetId).scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+
+            function handleSwotClick(event) {
+                const targetId = event.currentTarget.dataset.target;
+                const content = document.getElementById(targetId);
+                content.classList.toggle('hidden');
+            }
+            
+            function handleStrategyClick(event) {
+                const card = event.currentTarget;
+                const cardId = card.id;
+                
+                document.querySelectorAll('.strategy-card').forEach(c => c.classList.remove('active', 'border-blue-600', 'bg-blue-50'));
+                card.classList.add('active', 'border-blue-600', 'bg-blue-50');
+                
+                document.getElementById('strategy-card-text').textContent = strategyText[cardId] || '';
+            }
+
+            initCharts();
+            updateDynamicText('2016'); 
+            
+            document.getElementById('yearFilter').addEventListener('change', handleFilterChange);
+            document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', handleNavClick));
+            document.getElementById('mobile-nav').addEventListener('change', handleMobileNavChange);
+            document.querySelectorAll('.swot-card').forEach(card => card.addEventListener('click', handleSwotClick));
+            document.querySelectorAll('.strategy-card').forEach(card => card.addEventListener('click', handleStrategyClick));
+        });
+    </script>
+</body>
+</html>
